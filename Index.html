@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Looping Glitch Text</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: white;
+  font-family: 'Permanent Marker', cursive;
+  overflow-x: hidden;
+  animation: glitchBg 0.15s infinite;
+}
+
+/* Glitch background */
+@keyframes glitchBg {
+  0% { transform: translate(0); }
+  25% { transform: translate(1px,-1px); }
+  50% { transform: translate(-1px,1px); }
+  75% { transform: translate(2px,0); }
+  100% { transform: translate(0); }
+}
+
+/* Top control bar */
+.controls {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: white;
+  border-bottom: 3px solid black;
+  padding: 10px;
+  z-index: 1000;
+}
+
+/* Inputs */
+input, button {
+  font-family: 'Permanent Marker', cursive;
+  font-size: 16px;
+  padding: 6px;
+  border: 2px solid black;
+  background: white;
+}
+
+button {
+  cursor: pointer;
+  margin-left: 6px;
+}
+
+button:hover {
+  background: black;
+  color: white;
+}
+
+/* Screen tear */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.03);
+  clip-path: inset(15% 0 80% 0);
+  animation: tear 0.4s infinite steps(2);
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes tear {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(-20px); }
+  100% { transform: translateX(20px); }
+}
+
+/* 🔥 TEXT ZONE (THIS IS THE REAL FIX) */
+.text-wall {
+  margin-top: 110px;       /* pushes BELOW controls */
+  padding: 30px;
+  min-height: 220px;       /* guarantees visible red-area space */
+  border-top: 3px solid black; /* optional but makes layout obvious */
+  position: relative;
+  z-index: 5;
+}
+
+/* Typed text */
+#line {
+  font-size: 36px;
+  color: black;
+  min-height: 60px;
+  width: 100%;
+  animation: flicker 0.25s infinite;
+}
+
+@keyframes flicker {
+  0% { opacity: 1; }
+  30% { opacity: 0.7; }
+  60% { opacity: 0.9; }
+  100% { opacity: 1; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="controls">
+  <input id="textInput" placeholder="Add a line..." />
+  <button onclick="addLine()">Add</button>
+  <button onclick="startLoop()">Start</button>
+  <button onclick="stopLoop()">Stop</button>
+</div>
+
+<div class="text-wall">
+  <div id="line"></div>
+</div>
+
+<script>
+const lines = [];
+let running = false;
+let lineIndex = 0;
+let charIndex = 0;
+let timer;
+
+const display = document.getElementById("line");
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playGlitch() {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = "square";
+  osc.frequency.value = 120 + Math.random() * 250;
+  gain.gain.value = 0.03;
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.04);
+}
+
+function addLine() {
+  const input = document.getElementById("textInput");
+  if (!input.value.trim()) return;
+  lines.push(input.value);
+  input.value = "";
+}
+
+function startLoop() {
+  if (running || lines.length === 0) return;
+  running = true;
+  lineIndex = 0;
+  charIndex = 0;
+  display.textContent = "";
+  run();
+}
+
+function stopLoop() {
+  running = false;
+  clearTimeout(timer);
+}
+
+function run() {
+  if (!running) return;
+
+  const text = lines[lineIndex];
+
+  if (charIndex < text.length) {
+    display.textContent += text[charIndex];
+    playGlitch();
+    charIndex++;
+    timer = setTimeout(run, 200);
+  } else {
+    timer = setTimeout(() => {
+      charIndex = 0;
+      lineIndex = (lineIndex + 1) % lines.length;
+      display.textContent = "";
+      run();
+    }, 600);
+  }
+}
+</script>
+
+</body>
+</html>
